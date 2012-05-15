@@ -1,0 +1,2 @@
+pushd Cloud
+pushd Lab

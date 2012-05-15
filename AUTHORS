@@ -1,0 +1,43 @@
+BACKUPNINJA was written by the Riseup Collective: intellectual property is theft.
+
+Ninjas: 
+
+elijah@riseup.net  -- original code, bug fixes, man pages
+micah@riseup.net   -- debian package, vserver support, bug fixes
+stefani@riseup.net -- makecd handler, man pages
+intrigeri@boum.org -- dup handler, pgsql handler, vserver support, bug fixes
+Charles Lepple 	   -- trac handler
+Petr Klíma <petr.klima@madeta-group.cz>	-- autotools, RPM support and sys checks
+paulv@bikkel.org   -- rsnap handler
+Robert Napier 	   -- improved RPM build
+rhatto 		   -- rub handler and patches
+
+Patches: 
+
+cmccallum@thecsl.org
+Daniel.Bonniot@inria.fr -- mysql ignores and nodata
+Brad Fritz <brad@fritzfam.com> -- trac patch
+garcondumonde@riseup.net
+Martin Krafft madduck@debian.org -- admingroup patch
+Anarcat -- lotsa patches
+Jamie McClelland -- cstream patches
+ale -- ldap cleanup, rdiff support for reading include/exclude from files
+Sami Haahtinen <ressu@ressukka.net>
+Matthew Palmer -- mysql enhancements
+romain.tartiere@healthgrid.org -- ldap fixes
+Adam Monsen - spec file updates
+Matthew Palmer <mpalmer@debian.org> -- halt loglevel feature
+dan@garthwaite.org -- reportspace bugfix
+Tuomas Jormola <tj@solitudo.net> -- "when = manual" option
+Ian Beckwith <ianb@erislabs.net> -- dup bandwidthlimit fix, dup helper fix
+Olivier Berger <oberger@ouvaton.org> -- numerous contributions
+stefan <s.freudenberg@jpberlin.de> -- dup support for Amazon S3 buckets
+maniacmartin <martin@maniacmartin.com> -- rdiff confusing error message fix
+Chris Nolan <chris@cenolan.com> -- maildir subdirectory expansion
+Dan Carley -- mysql bugfix
+Jordi Mallach <jordi@debian.org> -- do not error when no jobs are configured
+Jacob Anawalt <jlanawalt@gmail.com> -- pg_dump format option
+Sergio Talens-Oliag <sto@debian.org> -- pipefail fixes
+Bruno Bigras <bigras.bruno@gmail.com> -- enable tar handler in the build system
+aihtdikh -- Allow 'when = XXX' with spaces in .sh files.
+Chris Lamb <lamby@debian.org> -- rdiff.helper bugfix

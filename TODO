@@ -1,0 +1,24 @@
+
+This is a todo list, want to help? Pick something and let the list know
+you are working on it!
+
+. Fix all bugs reported on the Debian BTS:
+  http://bugs.debian.org/cgi-bin/pkgreport.cgi?which=pkg&data=backupninja&archive=no
+
+. Fix all bugs reported on our Redmine instance:
+  https://labs.riseup.net/code/projects/backupninja/issues
+
+. Make ninjahelper allow you to pick what type of backup you want (instead
+  of just assuming you want local-to-remote, or push backups. Some people
+  want local-to-local, or remote-to-local, or pull backups). This has been
+  reported for the duplicity handler as Debian bug #346040.
+
+. Allow vsnames "all" in the msyql handler.
+
+. Factorize the rdiff.helper's connection-related functions into a lib, so
+  that they can be used by dup.helper too. (NB: don't forget that the dup
+  handler has a sshoptions configuration setting, that is often used to
+  specify an alternative SSH key, or a specific IP to bind to.)
+
+. Add an exclude option to database handlers so you can configure it to backup
+  all databases, except for the excluded ones

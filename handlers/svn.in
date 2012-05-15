@@ -1,0 +1,78 @@
+# -*- mode: sh; sh-basic-offset: 3; indent-tabs-mode: nil; -*-
+# vim: set filetype=sh sw=3 sts=3 expandtab autoindent:
+#
+# this handler will backup subversion repostitories.
+#
+
+getconf src /var/lib/svn
+getconf dest /var/backups/svn
+getconf tmp /var/backups/svn.tmp
+getconf HOTBACKUP "/usr/bin/svnadmin hotcopy"
+getconf vsname
+
+error=0
+
+# Decide if the handler should operate on a vserver or on the host.
+# In the former case, check that $vsname exists and is running.
+usevserver=no
+vroot=''
+if [ $vservers_are_available = yes ]; then
+   if [ -n "$vsname" ]; then
+      # does it exist ?
+      if ! vservers_exist "$vsname" ; then
+         fatal "The vserver given in vsname ($vsname) does not exist."
+      fi
+      # is it running ?
+      vservers_running $vsname || fatal "The vserver $vsname is not running."
+      # everything ok
+      info "Using vserver '$vsname'."
+      usevserver=yes
+      vroot="$VROOTDIR/$vsname"
+   else
+      info "No vserver name specified, actions will be performed on the host."
+   fi
+fi
+
+cd $vroot$src
+for repo in `find . -name svnserve.conf`
+do
+   repo=`dirname $repo`
+   repo=`dirname $repo`
+
+   ret=`mkdir -p $vroot$tmp/$repo 2>&1`
+   code=$?
+   if [ "$ret" ]; then
+      debug "$ret"
+   fi
+   if [ $code != 0 ]; then
+      error "command failed mkdir -p $vroot$tmp/$repo"
+   fi
+
+   if [ $usevserver = yes ]
+   then
+      ret=`$VSERVER $vsname exec $HOTBACKUP $src/$repo $tmp/$repo 2>&1`
+   else
+      ret=`$HOTBACKUP $src/$repo $tmp/$repo 2>&1`
+   fi
+   code=$?
+   if [ "$ret" ]; then
+      debug "$ret"
+   fi
+   if [ $code != 0 ]; then
+      error "command failed -- $HOTBACKUP $vroot$src/$repo $vroot$tmp/$repo"
+      error=1
+   fi
+done
+
+if [ $error -eq 1 ]; then
+   echo "Error: because of earlier errors, we are leaving svn backups in $vroot$tmp instead of $vroot$dest"
+else
+   if [ -d $vroot$dest -a -d $vroot$tmp ]; then
+      rm -rf $vroot$dest
+   fi
+   if [ -d $vroot$tmp ]; then
+      mv $vroot$tmp $vroot$dest
+   fi
+fi
+
+exit 0

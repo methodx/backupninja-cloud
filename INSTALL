@@ -1,0 +1,20 @@
+INSTALLATION
+============
+   
+Requirements:
+  bash gawk
+
+Recommended: 
+  rdiff-backup duplicity rsync gzip hwinfo sfdisk
+
+Installation:
+  To install backupninja, simply do the following:
+
+  $ ./autogen.sh
+  $ ./configure
+  $ make
+  $ make install
+
+  You may wish to change the install locations, or other options. To find
+  the available possibilities, run ./configure --help.
+

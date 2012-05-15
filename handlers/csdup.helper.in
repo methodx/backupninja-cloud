@@ -1,0 +1,573 @@
+## Backupninja handler for uploading backups to Cloud Storage
+## Based on duplicity handler (dup and dup.helper)
+## Written by Egor (methodx@aylium.net)
+
+
+HELPERS="$HELPERS csdup:cloud_storage_incremental_encrypted_backup"
+
+## Functions
+## No default values anymore
+
+do_csdup_host_includes() {
+   set -o noglob
+   # choose the files to backup
+   REPLY=
+   while [ -z "$REPLY" ]; do
+      formBegin "$csdup_title - host system: includes"
+         [ -z "$csdup_includes" ] && csdup_includes="$csdup_default_includes"
+         for i in $csdup_includes; do
+            formItem include "$i"
+         done
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formDisplay
+      [ $? = 0 ] || return 1
+      csdup_includes="$REPLY"
+   done
+   set +o noglob
+}
+
+do_csdup_vserver() {
+   # choose the vservers to backup (into $selected_vservers)
+   choose_one_or_more_vservers "$csdup_title"
+   [ $? = 0 ] || return 1
+
+   set -o noglob
+   # choose the files to backup
+   REPLY=
+   while [ -z "$REPLY" ]; do
+      formBegin "$csdup_title - vservers: vsincludes (backup these directories from every selected vserver)"
+         [ -z "$csdup_vsincludes" ] && csdup_vsincludes="$csdup_default_includes"
+         for i in $csdup_vsincludes; do
+            formItem include "$i"
+         done
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+      formDisplay
+      [ $? = 0 ] || return 1
+      csdup_vsincludes="$REPLY"
+   done
+   set +o noglob
+}
+
+## Excludes for backup
+
+do_csdup_excludes() {
+   set -o noglob
+   formBegin "$csdup_title: excludes"
+     [ -z "$csdup_excludes" ] && csdup_excludes="$csdup_default_excludes"
+     for i in $csdup_excludes; do
+        formItem exclude "$i"
+     done
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+   formDisplay
+   [ $? = 0 ] || return 1
+   csdup_excludes="$REPLY"
+   set +o noglob
+}
+
+
+
+do_csdup_src() {
+   choose_host_or_vservers_or_both "$csdup_title"
+   [ $? = 0 ] || return 1
+   case $host_or_vservers in
+      'host')
+         do_csdup_host_includes
+         [ $? = 0 ] || return 1
+         ;;
+      'vservers')
+         do_csdup_vserver
+         [ $? = 0 ] || return 1
+         ;;
+      'both')
+         do_csdup_host_includes
+         [ $? = 0 ] || return 1
+         do_csdup_vserver
+         [ $? = 0 ] || return 1
+         ;;
+      *)
+         return 1
+         ;;
+   esac
+   do_csdup_excludes
+   [ $? = 0 ] || return 1
+
+   _cssrc_done="(DONE)"
+   setDefault dest
+}
+
+## Cloud Storage connection options.
+## Consider first 3 values as default
+
+do_csdup_url() {
+
+   local replyconverted
+   local thereply
+
+   set -o noglob
+   REPLY=
+   while [ -z "$REPLY" -o -z "$csdup_storageid" -o -z "$csdup_apikey" -o -z "$csdup_cont" ]; do
+      formBegin "$csdup_title - destination: first three items are compulsory"
+        formItem "storage" "$csdup_storageid"
+		  formItem "apikey" "$csdup_apikey"
+		  formItem "cont" "$csdup_cont"
+		  formItem "keep" "$csdup_keep"
+        formItem "incremental" "$csdup_incremental"
+        formItem "increments" "$csdup_increments"
+        formItem "keepincroffulls" "$csdup_keepincroffulls"
+        formItem "bandwidthlimit" "$csdup_bandwidth"
+      formDisplay
+      [ $? = 0 ] || return 1
+
+      IFS=$''
+      replyconverted=`echo $REPLY | tr '\n' :`
+	IFS=$':'
+      thereply=($replyconverted)
+      IFS=$' \t\n'
+
+      csdup_storageid=${thereply[0]}
+      csdup_apikey=${thereply[1]}
+      csdup_cont=${thereply[2]}
+      csdup_keep=${thereply[3]}
+      csdup_incremental=${thereply[4]}
+      csdup_increments=${thereply[5]}
+      csdup_keepincroffulls=${thereply[6]}
+      csdup_bandwidth=${thereply[7]}
+
+   done
+   set +o noglob
+
+   _csdest_done="(DONE)"
+   _csurl_done="(DONE)"
+   setDefault gpg
+}
+
+## GPG section
+## Right now I do not recommend you to use this feature
+
+do_csdup_gpg_encryptkey() {
+   REPLY=
+   while [ -z "$REPLY" -o -z "$csdup_gpg_encryptkey" ]; do
+      inputBox "$csdup_title - GnuPG" "Enter ID of the public GnuPG key to be used to encrypt the backups:" "$csdup_gpg_encryptkey"
+      [ $? = 0 ] || return 1
+      csdup_gpg_encryptkey="$REPLY"
+   done
+}
+
+do_csdup_gpg_sign() {
+   # sign ?
+   booleanBox "$csdup_title - GnuPG" "Sign the backups?" "$csdup_gpg_sign"
+   if [ $? = 0 ]; then
+      csdup_gpg_sign=yes
+   else
+      csdup_gpg_sign=no
+   fi
+}
+
+do_csdup_gpg_signkey() {
+   # one key pair ?
+   booleanBox "$dup_title - GnuPG" "Use the same GnuPG key pair for encryption and signing?" "$csdup_gpg_onekeypair"
+   if [ $? = 0 ]; then
+      csdup_gpg_onekeypair=yes
+   else
+      csdup_gpg_onekeypair=no
+   fi
+
+   if [ "$csdup_gpg_onekeypair" == "no" ]; then
+      # signkey ?
+      REPLY=
+      while [ -z "$REPLY" -o -z "$dup_gpg_signkey" ]; do
+         inputBox "$csdup_title - GnuPG" "Enter the ID of the private GnuPG key to be used to sign the backups:" "$csdup_gpg_signkey"
+         [ $? = 0 ] || return 1
+         csdup_gpg_signkey="$REPLY"
+      done
+   fi
+}
+
+do_csdup_gpg_passphrase() {
+   local question="Enter the passphrase needed to unlock the GnuPG key:"
+   REPLY=
+   while [ -z "$REPLY" -o -z "$csdup_gpg_password" ]; do
+      passwordBox "$csdup_title - GnuPG" "$question"
+      [ $? = 0 ] || return 1
+      csdup_gpg_password="$REPLY"
+   done
+}
+
+do_csdup_gpg() {
+
+   # symmetric or public key encryption ?
+   booleanBox "$csdup_title - GnuPG" "Use public key encryption? Otherwise, symmetric encryption will be used, and data signing will be impossible." "$csdup_gpg_asymmetric_encryption"
+   if [ $? = 0 ]; then
+      csdup_gpg_asymmetric_encryption=yes
+   else
+      csdup_gpg_asymmetric_encryption=no
+   fi
+
+   # when using public/private key pair encryption, ask for the keys to use
+   if [ "$csdup_gpg_asymmetric_encryption" == yes ]; then
+      do_csdup_gpg_encryptkey ; [ $? = 0 ] || return 1
+      do_csdup_gpg_sign ; [ $? = 0 ] || return 1
+      if [ "$csdup_gpg_sign" == yes ]; then
+         do_csdup_gpg_signkey ; [ $? = 0 ] || return 1
+      fi
+   else
+      csdup_gpg_sign=no
+   fi
+
+   # a passphrase is alway needed
+   do_csdup_gpg_passphrase
+
+   _csgpg_done="(DONE)"
+   setDefault adv
+   # TODO: replace the above line by the following when do_dup_conn is written
+   # setDefault conn
+}
+
+# TODO: share rdiff.helper code in some lib, and use it here
+do_csdup_conn() {
+   _cscon_done="(DONE)"
+   setDefault adv
+}
+
+## Misc options section
+## Also, leave default values
+
+do_csdup_misc_options() {
+
+   set -o noglob
+   local replyconverted
+   local thereply
+
+   formBegin "$csdup_title - misc. options"
+     formItem "nicelevel" "$csdup_nicelevel"
+     formItem "testconnect" "$csdup_testconnect"
+     formItem "options" "$csdup_options"
+   formDisplay
+   [ $? = 0 ] || return 1
+
+   IFS=$''
+   replyconverted=`echo $REPLY | tr '\n' :`
+   IFS=$':'
+   thereply=($replyconverted)
+   IFS=$' \t\n'
+
+   csdup_nicelevel=${thereply[0]}
+   csdup_testconnect=${thereply[1]}
+   csdup_options=${thereply[2]}
+
+   set +o noglob
+}
+
+# (rdiff.helper compatible interface... there could be some sode to share, hmmm.)
+
+do_csdup_adv() {
+   do_csdup_misc_options
+   [ $? = 0 ] || return 1
+   _csadv_done="(DONE)"
+   setDefault finish
+}
+
+do_csdup_finish() {
+   get_next_filename $configdirectory/90.csdup
+   cat > $next_filename <<EOF
+# passed directly to duplicity
+#options = --verbosity 8
+options = $csdup_options
+
+# default is 0, but set to 19 if you want to lower the priority.
+nicelevel = $csdup_nicelevel
+
+# default is yes. set to no to skip the test if the remote host is alive.
+# if 'desturl' is set below, 'testconnect' must be set to 'no' for now.
+testconnect = $csdup_testconnect
+
+######################################################
+## gpg section
+## (how to encrypt and optionally sign the backups)
+##
+## WARNING: old (pre-0.9.4) example.dup used to give wrong information about
+##          the way the following options are used. Please read the following
+##          carefully.
+##
+## If the encryptkey variable is set:
+##   - data is encrypted with the GnuPG public key specified by the encryptkey
+##     variable
+##   - if signing is enabled, data is signed with the GnuPG private
+##     key specified by the signkey variable
+##   - the password variable is used to unlock the GnuPG key(s) used
+##     for encryption and (optionnal) signing
+##
+## If the encryptkey option is not set:
+##   - data signing is not possible
+##   - the password variable is used to encrypt the data with symmetric
+##     encryption: no GnuPG key pair is needed
+
+[gpg]
+
+# when set to yes, encryptkey variable must be set below; if you want to use
+# two different keys for encryption and signing, you must also set the signkey
+# variable below.
+# default is no, for backwards compatibility with backupninja <= 0.5.
+sign = $csdup_gpg_sign
+
+# ID of the GnuPG public key used for data encryption.
+# if not set, symmetric encryption is used, and data signing is not possible.
+encryptkey = $csdup_gpg_encryptkey
+
+# ID of the GnuPG private key used for data signing.
+# if not set, encryptkey will be used.
+signkey = $csdup_gpg_signkey
+
+# password
+# NB: neither quote this, nor should it include any quotes
+password = $csdup_gpg_password
+
+######################################################
+## source section
+## (where the files to be backed up are coming from)
+
+[source]
+
+# A few notes about includes and excludes:
+# 1. include, exclude and vsinclude statements support globbing with '*'
+# 2. Symlinks are not dereferenced. Moreover, an include line whose path
+#    contains, at any level, a symlink to a directory, will only have the
+#    symlink backed-up, not the target directory's content. Yes, you have to
+#    dereference yourself the symlinks, or to use 'mount --bind' instead.
+#    Example: let's say /home is a symlink to /mnt/crypt/home ; the following
+#    line will only backup a "/home" symlink ; neither /home/user nor
+#    /home/user/Mail will be backed-up :
+#      include = /home/user/Mail
+#    A workaround is to 'mount --bind /mnt/crypt/home /home' ; another one is to
+#    write :
+#      include = /mnt/crypt/home/user/Mail
+# 3. All the excludes come after all the includes. The order is not otherwise
+#    taken into account.
+
+# files to include in the backup
+EOF
+
+   if [ "$host_or_vservers" == host -o "$host_or_vservers" == both ]; then
+      set -o noglob
+      for i in $csdup_includes; do
+         echo "include = $i" >> $next_filename
+      done
+      set +o noglob
+   fi
+
+   cat >> $next_filename <<EOF
+
+# If vservers = yes in /etc/backupninja.conf then the following variables can
+# be used:
+# vsnames = all | <vserver1> <vserver2> ... (default = all)
+# vsinclude = <path>
+# vsinclude = <path>
+# ...
+# Any path specified in vsinclude is added to the include list for each vserver
+# listed in vsnames (or all if vsnames = all, which is the default).
+#
+# For example, vsinclude = /home will backup the /home directory in every
+# vserver listed in vsnames. If you have 'vsnames = foo bar baz', this
+# vsinclude will add to the include list /vservers/foo/home, /vservers/bar/home
+# and /vservers/baz/home.
+# Vservers paths are derived from $VROOTDIR.
+
+EOF
+
+   if [ "$host_or_vservers" == vservers -o "$host_or_vservers" == both ]; then
+      set -o noglob
+      echo -e "vsnames = $selected_vservers\n" >> $next_filename
+      for i in $dup_vsincludes; do
+         echo "vsinclude = $i" >> $next_filename
+      done
+      set +o noglob
+   fi
+
+   # excludes
+   cat >> $next_filename <<EOF
+
+# files to exclude from the backup
+EOF
+    set -o noglob
+    for i in $csdup_excludes; do
+        echo "exclude = $i" >> $next_filename
+    done
+    set +o noglob
+
+    cat >> $next_filename <<EOF
+
+######################################################
+## destination section
+## (where the files are copied to)
+
+[dest]
+
+# perform an incremental backup? (default = yes)
+# if incremental = no, perform a full backup in order to start a new backup set
+
+incremental = $csdup_incremental
+
+# how many days of incremental backups before doing a full backup again ;
+# default is 30 days (one can also use the time format of duplicity).
+# if increments = keep, never automatically perform a new full backup ; 
+# only perform incremental backups.
+
+#increments = 30
+#increments = keep
+
+increments = $csdup_increments
+
+# how many days of data to keep ; default is 60 days.
+# (you can also use the time format of duplicity)
+# 'keep = yes' means : do not delete old data, the remote host will take care of this
+
+#keep = 60
+#keep = 1Y
+#keep = yes
+
+keep = $csdup_keep
+
+# for how many full backups do we keep their later increments ;
+# default is all (keep all increments).
+# increments for older full backups will be deleted : only the more
+# recent ones (count provided) will be kept
+#keepincroffulls = all
+#keepincroffulls = 6
+
+keepincroffulls = $csdup_keepincroffulls
+
+# full destination URL, in duplicity format; if set, desturl overrides
+# sshoptions, destdir, desthost and destuser; it also disables testconnect and
+# bandwithlimit. For details, see duplicity manpage, section "URL FORMAT".
+
+# Only cloud files URL could be set here
+
+desturl = cf+http://$csdup_cont
+
+
+# bandwith limit, in kbit/s ; default is 0, i.e. no limit
+# if using 'desturl' above, 'bandwidthlimit' must not be set
+# an example setting of 128 Kbit/s would be:
+
+#bandwidthlimit = 128
+
+bandwidthlimit = $csdup_bandwidth
+
+## Cloud Storage credentials
+
+csdup_storageid=$csdup_storageid
+csdup_apikey=$csdup_apikey
+
+EOF
+
+    chmod 600 $next_filename
+
+}
+
+csdup_main_menu() {
+
+   while true; do
+      cssrcitem="choose files to include & exclude $_cssrc_done"
+      csdestitem="configure backup destination $_csdest_done"
+      csgpgitem="configure GnuPG encryption/signing $_csgpg_done"
+      csconitem="set up ssh keys and test remote connection $_cscon_done"
+      csadvitem="edit advanced settings $_csadv_done"
+      # TODO: add the following to the menu when do_dup_conn is written
+      # conn "$conitem" \
+      menuBox "$csdup_title" "choose a step:" \
+         src "$cssrcitem" \
+         dest "$csdestitem" \
+         gpg "$csgpgitem" \
+         adv "$csadvitem" \
+         finish "finish and create config file"
+      [ $? = 0 ] || return 1
+      result="$REPLY"
+
+      case "$result" in
+         "src") do_csdup_src;;
+         "dest") do_csdup_url;;
+         "gpg") do_csdup_gpg;;
+         # TODO: enable the following when do_dup_conn is written
+         # "conn") do_csdup_conn;;
+         "adv") do_csdup_adv;;
+         "finish")
+            if [[ "$_csurl_done$_csgpg_done$_cssrc_done" != "(DONE)(DONE)(DONE)" ]]; then
+            # TODO: replace the previous test by the following when do_dup_conn is written
+            # if [[ "$_con_done$_dest_done$_gpg_done$cs_src_done" != "(DONE)(DONE)(DONE)(DONE)" ]]; then
+               msgBox "$csdup_title" "You cannot create the configuration file until the four first steps are completed."
+            else
+               do_csdup_finish
+               break
+            fi
+            ;;
+      esac
+
+   done
+}
+
+### Main function
+
+csdup_wizard() {
+
+   require_packages duplicity
+
+   # Global variables
+   csdup_title="Duplicity action wizard [Cloud Storage]"
+   _cssrc_done=
+   _csurl_done=
+   _cscon_done=
+   _csgpg_done=
+   _csadv_done=
+   csdup_storageid=
+   csdup_apikey=
+   csdup_includes=
+   csdup_excludes=
+   csdup_vsincludes=
+   csdup_incremental=yes
+   csdup_increments=30
+   csdup_keep=60
+   csdup_keepincroffulls=
+   csdup_bandwidth=
+   csdup_sshoptions=
+   csdup_destdir=$csdup_cont
+   csdup_destuser="`whoami`"
+   csdup_gpg_asymmetric_encryption="yes"
+   csdup_gpg_encryptkey=""
+   csdup_gpg_sign="no"
+   csdup_gpg_onekeypair="yes"
+   csdup_gpg_signkey=""
+   csdup_gpg_password=""
+   csdup_nicelevel=19
+   csdup_testconnect=no
+   csdup_options=
+
+   # Global variables whose '*' shall not be expanded
+   set -o noglob
+   csdup_default_includes=""
+   csdup_default_excludes=""
+   set +o noglob
+
+
+   csdup_main_menu
+}
