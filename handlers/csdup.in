@@ -40,6 +40,8 @@ getconf csdup_apikey
 
 destdir=${destdir%/}
 
+export CLOUDFILES_AUTHURL=https://api.clodo.ru
+
 csdup_storageid=$csdup_storageid
 csdup_apikey=$csdup_apikey
 
