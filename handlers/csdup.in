@@ -45,6 +45,9 @@ export CLOUDFILES_AUTHURL=https://api.clodo.ru
 csdup_storageid=$csdup_storageid
 csdup_apikey=$csdup_apikey
 
+export CLOUDFILES_USERNAME=$csdup_storageid
+export CLOUDFILES_APIKEY=$csdup_apikey
+
 ### SANITY CHECKS ##############################################################
 
 [ -n "$desturl" -o -n "$destdir" ]  || fatal "The destination directory (destdir) must be set when desturl is not used."
