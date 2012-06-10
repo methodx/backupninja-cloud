@@ -1,6 +1,9 @@
-## Backupninja handler for uploading backups to Cloud Storage
-## Based on duplicity handler (dup and dup.helper)
-## Written by Egor (methodx@aylium.net)
+# -*- mode: sh; sh-basic-offset: 3; indent-tabs-mode: nil; -*-
+# vim: set filetype=sh sw=3 sts=3 expandtab autoindent:
+#
+# duplicity script for backupninja
+# requires duplicity >= 0.4.4, and >= 0.4.9 when using a custom tmpdir.
+#
 
 getconf options
 getconf testconnect yes
@@ -34,21 +37,18 @@ getconf desthost
 getconf destdir
 getconf destuser
 
-
 getconf csdup_storageid
 getconf csdup_apikey
 
 destdir=${destdir%/}
 
-export CLOUDFILES_AUTHURL=https://api.clodo.ru
-
 csdup_storageid=$csdup_storageid
 csdup_apikey=$csdup_apikey
 
-export CLOUDFILES_USERNAME=$csdup_storageid
-export CLOUDFILES_APIKEY=$csdup_apikey
-
 ### SANITY CHECKS ##############################################################
+
+#export CLOUDFILES_USERNAME=$csdup_storageid
+#export CLOUDFILES_APIKEY=$csdup_apikey
 
 [ -n "$desturl" -o -n "$destdir" ]  || fatal "The destination directory (destdir) must be set when desturl is not used."
 [ -n "$include" -o -n "$vsinclude" ]  || fatal "No source includes specified"
