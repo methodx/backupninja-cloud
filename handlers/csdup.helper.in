@@ -360,7 +360,7 @@ EOF
 ###
 # Export restoration file
 ###
-	get_next_filename /root/restore/$csdup_name
+	get_next_filename /root/.csrestore/$csdup_name.csdup
 	cat > $next_filename << EOF
 
 #!/bin/bash
