@@ -124,7 +124,9 @@ if [ "$bandwidthlimit" != 0 ]; then
    scpoptions="$scpoptions -l $bandwidthlimit"
 fi
 sftpoptions="$sshoptions"
-execstr_options="${execstr_options} --scp-command 'scp $scpoptions' --sftp-command 'sftp $sftpoptions'"
+execstr_options=
+
+##"${execstr_options} --scp-command 'scp $scpoptions' --sftp-command 'sftp $sftpoptions'"
 
 ### Symmetric or asymmetric (public/private key pair) encryption
 if [ -n "$encryptkey" ]; then
