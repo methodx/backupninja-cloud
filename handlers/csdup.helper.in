@@ -498,6 +498,7 @@ EOF
 ###
 # Export restoration file
 ###
+	mkdir -p /root/restore/ > /dev/null
 	get_next_filename /root/restore/$csdup_name
 	cat > $next_filename << EOF
 
