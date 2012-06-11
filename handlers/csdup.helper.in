@@ -126,13 +126,14 @@ do_csdup_url() {
 
    set -o noglob
    REPLY=
-   while [ -z "$REPLY" -o -z "$csdup_storageid" -o -z "$csdup_apikey" -o -z "$csdup_cont" ]; do
-      formBegin "$csdup_title - destination: first three items are compulsory"
+   while [ -z "$REPLY" -o -z "$csdup_storageid" -o -z "$csdup_apikey" -o -z "$csdup_cont" -o -z "$csdup_name" ]; do
+      formBegin "$csdup_title - destination: first four items are compulsory"
         formItem "storage" "$csdup_storageid"
-		  formItem "apikey" "$csdup_apikey"
-		  formItem "cont" "$csdup_cont"
-		  formItem "keep" "$csdup_keep"
-        formItem "incremental" "$csdup_incremental"
+	formItem "apikey" "$csdup_apikey"
+	formItem "cont" "$csdup_cont"
+	formItem "nameof" "$csdup_name"
+        formItem "keep" "$csdup_keep"
+	formItem "incremental" "$csdup_incremental"
         formItem "increments" "$csdup_increments"
         formItem "keepincroffulls" "$csdup_keepincroffulls"
         formItem "bandwidthlimit" "$csdup_bandwidth"
@@ -148,11 +149,12 @@ do_csdup_url() {
       csdup_storageid=${thereply[0]}
       csdup_apikey=${thereply[1]}
       csdup_cont=${thereply[2]}
-      csdup_keep=${thereply[3]}
-      csdup_incremental=${thereply[4]}
-      csdup_increments=${thereply[5]}
-      csdup_keepincroffulls=${thereply[6]}
-      csdup_bandwidth=${thereply[7]}
+      csdup_name=${thereply[3]}
+      csdup_keep=${thereply[4]}
+      csdup_incremental=${thereply[5]}
+      csdup_increments=${thereply[6]}
+      csdup_keepincroffulls=${thereply[7]}
+      csdup_bandwidth=${thereply[8]}
 
    done
    set +o noglob
@@ -163,46 +165,46 @@ do_csdup_url() {
 }
 
 ## GPG section
-## Right now I do not recommend you to use this feature
+## Right now I do not recommend you to use this feature (Egor)
 
-do_csdup_gpg_encryptkey() {
-   REPLY=
-   while [ -z "$REPLY" -o -z "$csdup_gpg_encryptkey" ]; do
-      inputBox "$csdup_title - GnuPG" "Enter ID of the public GnuPG key to be used to encrypt the backups:" "$csdup_gpg_encryptkey"
-      [ $? = 0 ] || return 1
-      csdup_gpg_encryptkey="$REPLY"
-   done
-}
+#do_csdup_gpg_encryptkey() {
+#   REPLY=
+#   while [ -z "$REPLY" -o -z "$csdup_gpg_encryptkey" ]; do
+#      inputBox "$csdup_title - GnuPG" "Enter ID of the public GnuPG key to be used to encrypt the backups:" "$csdup_gpg_encryptkey"
+#      [ $? = 0 ] || return 1
+#      csdup_gpg_encryptkey="$REPLY"
+#   done
+#}
 
-do_csdup_gpg_sign() {
-   # sign ?
-   booleanBox "$csdup_title - GnuPG" "Sign the backups?" "$csdup_gpg_sign"
-   if [ $? = 0 ]; then
-      csdup_gpg_sign=yes
-   else
-      csdup_gpg_sign=no
-   fi
-}
+#do_csdup_gpg_sign() {
+#   # sign ?
+#   booleanBox "$csdup_title - GnuPG" "Sign the backups?" "$csdup_gpg_sign"
+#   if [ $? = 0 ]; then
+#      csdup_gpg_sign=yes
+#   else
+#      csdup_gpg_sign=no
+#   fi
+#}
 
-do_csdup_gpg_signkey() {
-   # one key pair ?
-   booleanBox "$dup_title - GnuPG" "Use the same GnuPG key pair for encryption and signing?" "$csdup_gpg_onekeypair"
-   if [ $? = 0 ]; then
-      csdup_gpg_onekeypair=yes
-   else
-      csdup_gpg_onekeypair=no
-   fi
-
-   if [ "$csdup_gpg_onekeypair" == "no" ]; then
-      # signkey ?
-      REPLY=
-      while [ -z "$REPLY" -o -z "$dup_gpg_signkey" ]; do
-         inputBox "$csdup_title - GnuPG" "Enter the ID of the private GnuPG key to be used to sign the backups:" "$csdup_gpg_signkey"
-         [ $? = 0 ] || return 1
-         csdup_gpg_signkey="$REPLY"
-      done
-   fi
-}
+#do_csdup_gpg_signkey() {
+#   # one key pair ?
+#   booleanBox "$dup_title - GnuPG" "Use the same GnuPG key pair for encryption and signing?" "$csdup_gpg_onekeypair"
+#   if [ $? = 0 ]; then
+#      csdup_gpg_onekeypair=yes
+#   else
+#      csdup_gpg_onekeypair=no
+#   fi
+#
+#   if [ "$csdup_gpg_onekeypair" == "no" ]; then
+#      # signkey ?
+#      REPLY=
+#      while [ -z "$REPLY" -o -z "$dup_gpg_signkey" ]; do
+#         inputBox "$csdup_title - GnuPG" "Enter the ID of the private GnuPG key to be used to sign the backups:" "$csdup_gpg_signkey"
+#         [ $? = 0 ] || return 1
+#         csdup_gpg_signkey="$REPLY"
+#      done
+#   fi
+#}
 
 do_csdup_gpg_passphrase() {
    local question="Enter the passphrase needed to unlock the GnuPG key:"
@@ -217,26 +219,25 @@ do_csdup_gpg_passphrase() {
 do_csdup_gpg() {
 
    # symmetric or public key encryption ?
-   booleanBox "$csdup_title - GnuPG" "Use public key encryption? Otherwise, symmetric encryption will be used, and data signing will be impossible." "$csdup_gpg_asymmetric_encryption"
-   if [ $? = 0 ]; then
-      csdup_gpg_asymmetric_encryption=yes
-   else
-      csdup_gpg_asymmetric_encryption=no
-   fi
+#  booleanBox "$csdup_title - GnuPG" "Use public key encryption? Otherwise, symmetric encryption will be used, and data signing will be impossible." "$csdup_gpg_asymmetric_encryption"
+#  if [ $? = 0 ]; then
+#     csdup_gpg_asymmetric_encryption=yes
+#  else
+     csdup_gpg_asymmetric_encryption=no
+#  fi
 
    # when using public/private key pair encryption, ask for the keys to use
-   if [ "$csdup_gpg_asymmetric_encryption" == yes ]; then
-      do_csdup_gpg_encryptkey ; [ $? = 0 ] || return 1
-      do_csdup_gpg_sign ; [ $? = 0 ] || return 1
-      if [ "$csdup_gpg_sign" == yes ]; then
-         do_csdup_gpg_signkey ; [ $? = 0 ] || return 1
-      fi
-   else
+#   if [ "$csdup_gpg_asymmetric_encryption" == yes ]; then
+#      do_csdup_gpg_encryptkey ; [ $? = 0 ] || return 1
+#      do_csdup_gpg_sign ; [ $? = 0 ] || return 1
+#      if [ "$csdup_gpg_sign" == yes ]; then
+#         do_csdup_gpg_signkey ; [ $? = 0 ] || return 1
+#      fi
+#   else
       csdup_gpg_sign=no
-   fi
-
-   # a passphrase is alway needed
-   do_csdup_gpg_passphrase
+#   fi
+   # a passphrase is always needed
+do_csdup_gpg_passphrase
 
    _csgpg_done="(DONE)"
    setDefault adv
@@ -289,8 +290,8 @@ do_csdup_adv() {
 }
 
 do_csdup_finish() {
-   get_next_filename $configdirectory/90.csdup
-   cat > $next_filename <<EOF
+   	get_next_filename $configdirectory/$csdup_name.csdup
+	cat > $next_filename <<EOF
 # passed directly to duplicity
 #options = --verbosity 8
 options = $csdup_options
@@ -425,27 +426,22 @@ EOF
 
 # perform an incremental backup? (default = yes)
 # if incremental = no, perform a full backup in order to start a new backup set
-
 incremental = $csdup_incremental
 
 # how many days of incremental backups before doing a full backup again ;
 # default is 30 days (one can also use the time format of duplicity).
 # if increments = keep, never automatically perform a new full backup ; 
 # only perform incremental backups.
-
 #increments = 30
 #increments = keep
-
 increments = $csdup_increments
 
 # how many days of data to keep ; default is 60 days.
 # (you can also use the time format of duplicity)
 # 'keep = yes' means : do not delete old data, the remote host will take care of this
-
 #keep = 60
 #keep = 1Y
 #keep = yes
-
 keep = $csdup_keep
 
 # for how many full backups do we keep their later increments ;
@@ -454,25 +450,41 @@ keep = $csdup_keep
 # recent ones (count provided) will be kept
 #keepincroffulls = all
 #keepincroffulls = 6
-
 keepincroffulls = $csdup_keepincroffulls
 
 # full destination URL, in duplicity format; if set, desturl overrides
 # sshoptions, destdir, desthost and destuser; it also disables testconnect and
 # bandwithlimit. For details, see duplicity manpage, section "URL FORMAT".
-
-# Only cloud files URL could be set here
-
+#desturl = file:///usr/local/backup
+#desturl = rsync://user@other.host//var/backup/bla
+#desturl = s3+http://your_bucket
+#desturl = ftp://myftpuser@ftp.example.org/remote/ftp/path
 desturl = cf+http://$csdup_cont
 
+# Amazon Web Services Access Key ID and Secret Access Key, needed for backups
+# to S3 buckets.
+#awsaccesskeyid = YOUR_AWS_ACCESS_KEY_ID
+#awssecretaccesskey = YOUR_AWS_SECRET_KEY
+
+# FTP password, needed for backups using desturl = ftp://...
+#ftp_password = 
 
 # bandwith limit, in kbit/s ; default is 0, i.e. no limit
 # if using 'desturl' above, 'bandwidthlimit' must not be set
 # an example setting of 128 Kbit/s would be:
-
 #bandwidthlimit = 128
-
 bandwidthlimit = $csdup_bandwidth
+
+# the machine which will receive the backups
+# if using 'desturl' above, this must not be set
+# in all other cases, this must be set!
+#desturl = cf+http://$csdup_cont
+
+# make the files owned by this user
+# if using 'desturl' above, this must not be set
+# note: if using an SSH based transport and 'type' is set to 'remote', you must
+#       be able to 'ssh backupuser@backuphost' without specifying a password.
+#destuser = $csdup_destuser
 
 ## Cloud Storage credentials
 
@@ -483,6 +495,34 @@ EOF
 
     chmod 600 $next_filename
 
+###
+# Export restoration file
+###
+	get_next_filename /root/restore/$csdup_name
+	cat > $next_filename << EOF
+
+#!/bin/bash
+
+## Task name
+
+csdup_name=$csdup_name
+
+## Container name
+
+csdup_cont=$csdup_cont
+
+## Cloud Storage Credentials
+
+export CLOUDFILES_USERNAME=$csdup_storageid
+export CLOUDFILES_APIKEY=$csdup_apikey
+export PASSPHRASE=$csdup_gpg_password
+export CLOUDFILES_AUTHURL=https://api.clodo.ru
+export CLOUDFILES_CONTAINER=$csdup_cont
+
+
+EOF
+
+	chmod 600 $next_filename
 }
 
 csdup_main_menu() {
