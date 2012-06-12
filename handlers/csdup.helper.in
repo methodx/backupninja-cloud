@@ -4,9 +4,17 @@
 
 
 HELPERS="$HELPERS csdup:cloud_storage_incremental_encrypted_backup"
+CSTASKS_PATH=/root/.restore
 
 ## Functions
 ## No default values anymore
+
+cstasks_check() {
+
+if [ ! -d $CSTASKS_PATH ]; then
+	mkdir $CSTASKS_PATH
+fi
+}
 
 do_csdup_host_includes() {
    set -o noglob
@@ -357,9 +365,14 @@ EOF
 
     chmod 600 $next_filename
 
-###
+
+## Check tasks directory
+cstasks_check
+
+
+##
 # Export restoration file
-###
+##
 	get_next_filename /root/.restore/$csdup_name.cstask
 	cat > $next_filename << EOF
 
