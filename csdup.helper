@@ -1,0 +1,485 @@
+## Backupninja handler for uploading backups to Cloud Storage
+## Based on duplicity handler (dup and dup.helper)
+## Written by Egor (methodx@aylium.net)
+
+
+HELPERS="$HELPERS clouddup:cloud_storage_incremental_encrypted_backup"
+CSTASKS_PATH=/root/.restore
+
+## Functions
+## No default values anymore
+
+cstasks_check() {
+
+if [ ! -d $CSTASKS_PATH ]; then
+	mkdir $CSTASKS_PATH
+fi
+}
+
+do_clouddup_host_includes() {
+   set -o noglob
+
+## Choose files to include into backup
+
+   REPLY=
+   while [ -z "$REPLY" ]; do
+      formBegin "$clouddup_title - host system: includes"
+         [ -z "$clouddup_includes" ] && clouddup_includes="$clouddup_default_includes"
+         for i in $clouddup_includes; do
+            formItem include "$i"
+         done
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formDisplay
+      [ $? = 0 ] || return 1
+      clouddup_includes="$REPLY"
+   done
+   set +o noglob
+}
+
+do_clouddup_vserver() {
+   # choose the vservers to backup (into $selected_vservers)
+   choose_one_or_more_vservers "$clouddup_title"
+   [ $? = 0 ] || return 1
+
+   set -o noglob
+   REPLY=
+   while [ -z "$REPLY" ]; do
+      formBegin "$clouddup_title - vservers: vsincludes (backup these directories from every selected vserver)"
+         [ -z "$clouddup_vsincludes" ] && clouddup_vsincludes="$clouddup_default_includes"
+         for i in $clouddup_vsincludes; do
+            formItem include "$i"
+         done
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+         formItem include ""
+      formDisplay
+      [ $? = 0 ] || return 1
+      clouddup_vsincludes="$REPLY"
+   done
+   set +o noglob
+}
+
+## Exclude files from backup
+
+do_clouddup_excludes() {
+   set -o noglob
+   formBegin "$clouddup_title: excludes"
+     [ -z "$clouddup_excludes" ] && clouddup_excludes="$clouddup_default_excludes"
+     for i in $clouddup_excludes; do
+        formItem exclude "$i"
+     done
+     formItem exclude "**.bash_history"
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+     formItem exclude ""
+   formDisplay
+   [ $? = 0 ] || return 1
+   clouddup_excludes="$REPLY"
+   set +o noglob
+}
+
+## Choose Source files
+
+do_clouddup_src() {
+   choose_host_or_vservers_or_both "$clouddup_title"
+   [ $? = 0 ] || return 1
+   case $host_or_vservers in
+      'host')
+         do_clouddup_host_includes
+         [ $? = 0 ] || return 1
+         ;;
+      'vservers')
+         do_clouddup_vserver
+         [ $? = 0 ] || return 1
+         ;;
+      'both')
+         do_clouddup_host_includes
+         [ $? = 0 ] || return 1
+         do_clouddup_vserver
+         [ $? = 0 ] || return 1
+         ;;
+      *)
+         return 1
+         ;;
+   esac
+   do_clouddup_excludes
+   [ $? = 0 ] || return 1
+
+   _cssrc_done="(DONE)"
+   setDefault dest
+}
+
+## Cloud Storage connection options.
+## Consider first 5 values as default
+
+do_clouddup_url() {
+
+   local replyconverted
+   local thereply
+
+   set -o noglob
+   REPLY=
+   while [ -z "$REPLY" -o -z "$clouddup_storageid" -o -z "$clouddup_apikey" -o -z "$clouddup_cont" -o -z "$clouddup_name" ]; do
+      formBegin "$clouddup_title - destination: first four items are compulsory"
+	formItem "authurl" "$clouddup_authurl"
+        formItem "storage" "$clouddup_storageid"
+	formItem "apikey" "$clouddup_apikey"
+	formItem "container" "$clouddup_cont"
+	formItem "name" "$clouddup_name"
+        formItem "keep" "$clouddup_keep"
+	formItem "incremental" "$clouddup_incremental"
+        formItem "increments" "$clouddup_increments"
+        formItem "keepincroffulls" "$clouddup_keepincroffulls"
+        formItem "bandwidthlimit" "$clouddup_bandwidth"
+      formDisplay
+      [ $? = 0 ] || return 1
+
+      IFS=$''
+      replyconverted=`echo $REPLY | tr '\n' :`
+	IFS=$':'
+      thereply=($replyconverted)
+      IFS=$' \t\n'
+
+      clouddup_authurl=${thereply[0]}
+      clouddup_storageid=${thereply[1]}
+      clouddup_apikey=${thereply[2]}
+      clouddup_cont=${thereply[3]}
+      clouddup_name=${thereply[4]}
+      clouddup_keep=${thereply[5]}
+      clouddup_incremental=${thereply[6]}
+      clouddup_increments=${thereply[7]}
+      clouddup_keepincroffulls=${thereply[8]}
+      clouddup_bandwidth=${thereply[9]}
+
+   done
+   set +o noglob
+
+   _csdest_done="(DONE)"
+   _csurl_done="(DONE)"
+   setDefault gpg
+}
+
+## GPG section
+## Right now I do not recommend you to use this feature, so I'll comment it out
+#########################
+##
+##do_clouddup_gpg_encryptkey() {
+##   REPLY=
+##   while [ -z "$REPLY" -o -z "$clouddup_gpg_encryptkey" ]; do
+##      inputBox "$clouddup_title - GnuPG" "Enter ID of the public GnuPG key to be used to encrypt the backups:" "$clouddup_gpg_encryptkey"
+##      [ $? = 0 ] || return 1
+##      clouddup_gpg_encryptkey="$REPLY"
+##   done
+##}
+##
+##do_clouddup_gpg_sign() {
+##   # sign ?
+##   booleanBox "$clouddup_title - GnuPG" "Sign the backups?" "$clouddup_gpg_sign"
+##   if [ $? = 0 ]; then
+##      clouddup_gpg_sign=yes
+##   else
+##      clouddup_gpg_sign=no
+##   fi
+##}
+##
+##do_clouddup_gpg_signkey() {
+##   # one key pair ?
+##   booleanBox "$dup_title - GnuPG" "Use the same GnuPG key pair for encryption and signing?" "$clouddup_gpg_onekeypair"
+##   if [ $? = 0 ]; then
+##      clouddup_gpg_onekeypair=yes
+##   else
+##      clouddup_gpg_onekeypair=no
+##   fi
+##
+##   if [ "$clouddup_gpg_onekeypair" == "no" ]; then
+##      # signkey ?
+##      REPLY=
+##      while [ -z "$REPLY" -o -z "$dup_gpg_signkey" ]; do
+##         inputBox "$clouddup_title - GnuPG" "Enter the ID of the private GnuPG key to be used to sign the backups:" "$clouddup_gpg_signkey"
+##         [ $? = 0 ] || return 1
+##         clouddup_gpg_signkey="$REPLY"
+##      done
+##   fi
+##}
+############################
+do_clouddup_gpg_passphrase() {
+   local question="Enter the passphrase needed to unlock the GnuPG key:"
+   REPLY=
+   while [ -z "$REPLY" -o -z "$clouddup_gpg_password" ]; do
+      passwordBox "$clouddup_title - GnuPG" "$question"
+      [ $? = 0 ] || return 1
+      clouddup_gpg_password="$REPLY"
+   done
+}
+
+do_clouddup_gpg() {
+##
+##   # symmetric or public key encryption ?
+##  booleanBox "$clouddup_title - GnuPG" "Use public key encryption? Otherwise, symmetric encryption will be used, and data signing will be impossible." "$clouddup_gpg_asymmetric_encryption"
+##  if [ $? = 0 ]; then
+##     clouddup_gpg_asymmetric_encryption=yes
+##  else
+     clouddup_gpg_asymmetric_encryption=no
+##  fi
+##
+##   # when using public/private key pair encryption, ask for the keys to use
+##   if [ "$clouddup_gpg_asymmetric_encryption" == yes ]; then
+##      do_clouddup_gpg_encryptkey ; [ $? = 0 ] || return 1
+##      do_clouddup_gpg_sign ; [ $? = 0 ] || return 1
+##      if [ "$clouddup_gpg_sign" == yes ]; then
+##         do_clouddup_gpg_signkey ; [ $? = 0 ] || return 1
+##      fi
+##   else
+##
+      clouddup_gpg_sign=no
+##   fi
+## # a passphrase is always needed
+do_clouddup_gpg_passphrase
+
+   _csgpg_done="(DONE)"
+   setDefault adv
+}
+
+do_clouddup_conn() {
+   _cscon_done="(DONE)"
+   setDefault adv
+}
+
+## Misc options section
+## Also, leave default values
+
+do_clouddup_misc_options() {
+
+   set -o noglob
+   local replyconverted
+   local thereply
+
+   formBegin "$clouddup_title - misc. options"
+     formItem "nicelevel" "$clouddup_nicelevel"
+     formItem "testconnect" "$clouddup_testconnect"
+     formItem "options" "$clouddup_options"
+   formDisplay
+   [ $? = 0 ] || return 1
+
+   IFS=$''
+   replyconverted=`echo $REPLY | tr '\n' :`
+   IFS=$':'
+   thereply=($replyconverted)
+   IFS=$' \t\n'
+
+   clouddup_nicelevel=${thereply[0]}
+   clouddup_testconnect=${thereply[1]}
+   clouddup_options=${thereply[2]}
+
+   set +o noglob
+}
+
+
+do_clouddup_adv() {
+   do_clouddup_misc_options
+   [ $? = 0 ] || return 1
+   _csadv_done="(DONE)"
+   setDefault finish
+}
+
+do_clouddup_finish() {
+   	get_next_filename $configdirectory/$clouddup_name.clouddup
+	cat > $next_filename <<EOF
+options = $clouddup_options
+nicelevel = $clouddup_nicelevel
+testconnect = $clouddup_testconnect
+
+[gpg]
+sign = $clouddup_gpg_sign
+encryptkey = $clouddup_gpg_encryptkey
+signkey = $clouddup_gpg_signkey
+password = $clouddup_gpg_password
+
+[source]
+
+EOF
+
+   if [ "$host_or_vservers" == host -o "$host_or_vservers" == both ]; then
+      set -o noglob
+      for i in $clouddup_includes; do
+         echo "include = $i" >> $next_filename
+      done
+      set +o noglob
+   fi
+
+   cat >> $next_filename <<EOF
+
+EOF
+
+   if [ "$host_or_vservers" == vservers -o "$host_or_vservers" == both ]; then
+      set -o noglob
+      echo -e "vsnames = $selected_vservers\n" >> $next_filename
+      for i in $dup_vsincludes; do
+         echo "vsinclude = $i" >> $next_filename
+      done
+      set +o noglob
+   fi
+
+   cat >> $next_filename <<EOF
+
+# Files to exclude from backup
+
+EOF
+    set -o noglob
+    for i in $clouddup_excludes; do
+        echo "exclude = $i" >> $next_filename
+    done
+    set +o noglob
+
+    cat >> $next_filename <<EOF
+
+[dest]
+
+incremental = $clouddup_incremental
+increments = $clouddup_increments
+keep = $clouddup_keep
+keepincroffulls = $clouddup_keepincroffulls
+desturl = cf+http://$clouddup_cont
+bandwidthlimit = $clouddup_bandwidth
+
+## Clodo Cloud Storage credentials
+
+clouddup_authurl=https://$clouddup_authurl
+clouddup_storageid=$clouddup_storageid
+clouddup_apikey=$clouddup_apikey
+
+EOF
+
+    chmod 600 $next_filename
+
+
+## Check tasks directory
+cstasks_check
+
+
+##
+# Export restoration file
+##
+	get_next_filename /root/.restore/$clouddup_name.cstask
+	cat > $next_filename << EOF
+
+#!/bin/bash
+
+## Task name
+clouddup_name=$clouddup_name
+
+## Container name
+clouddup_cont=$clouddup_cont
+
+## Cloud Storage Credentials
+export CLOUDFILES_USERNAME=$clouddup_storageid
+export CLOUDFILES_APIKEY=$clouddup_apikey
+export PASSPHRASE=$clouddup_gpg_password
+export CLOUDFILES_AUTHURL=$clouddup_authurl
+export CLOUDFILES_CONTAINER=$clouddup_cont
+
+
+EOF
+
+	chmod 600 $next_filename
+}
+
+clouddup_main_menu() {
+
+   while true; do
+      cssrcitem="choose files to include & exclude $_cssrc_done"
+      csdestitem="configure backup destination $_csdest_done"
+      csgpgitem="configure GnuPG encryption/signing $_csgpg_done"
+      csconitem="set up ssh keys and test remote connection $_cscon_done"
+      csadvitem="edit advanced settings $_csadv_done"
+      menuBox "$clouddup_title" "choose a step:" \
+         src "$cssrcitem" \
+         dest "$csdestitem" \
+         gpg "$csgpgitem" \
+         adv "$csadvitem" \
+         finish "finish and create config file"
+      [ $? = 0 ] || return 1
+      result="$REPLY"
+
+      case "$result" in
+         "src") do_clouddup_src;;
+         "dest") do_clouddup_url;;
+         "gpg") do_clouddup_gpg;;
+         # TODO: enable the following when do_dup_conn is written
+         # "conn") do_clouddup_conn;;
+         "adv") do_clouddup_adv;;
+         "finish")
+            if [[ "$_csurl_done$_csgpg_done$_cssrc_done" != "(DONE)(DONE)(DONE)" ]]; then
+               msgBox "$clouddup_title" "You cannot create the configuration file until the four first steps are completed."
+            else
+               do_clouddup_finish
+               break
+            fi
+            ;;
+      esac
+
+   done
+}
+
+### Main function
+
+clouddup_wizard() {
+
+   require_packages duplicity
+
+   # Global variables
+   clouddup_title="Duplicity action wizard [Cloud Storage]"
+   _cssrc_done=
+   _csurl_done=
+   _cscon_done=
+   _csgpg_done=
+   _csadv_done=
+   clouddup_authurl="api.clodo.ru"
+   clouddup_storageid=
+   clouddup_apikey=
+   clouddup_includes=
+   clouddup_excludes=
+   clouddup_vsincludes=
+   clouddup_incremental=yes
+   clouddup_increments=30
+   clouddup_keep=60
+   clouddup_keepincroffulls=
+   clouddup_bandwidth=
+   clouddup_sshoptions=
+   clouddup_destdir=$clouddup_cont
+   clouddup_destuser="`whoami`"
+   clouddup_gpg_asymmetric_encryption="yes"
+   clouddup_gpg_encryptkey=""
+   clouddup_gpg_sign="no"
+   clouddup_gpg_onekeypair="yes"
+   clouddup_gpg_signkey=""
+   clouddup_gpg_password=""
+   clouddup_nicelevel=19
+   clouddup_testconnect=no
+   clouddup_options=
+
+   # Global variables whose '*' shall not be expanded
+   set -o noglob
+   clouddup_default_includes=""
+   clouddup_default_excludes=""
+   set +o noglob
+
+
+   clouddup_main_menu
+}

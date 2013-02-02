@@ -37,21 +37,22 @@ getconf desthost
 getconf destdir
 getconf destuser
 
-getconf csdup_storageid
-getconf csdup_apikey
+getconf clouddup_storageid
+getconf clouddup_apikey
+getconf clouddup_authurl
 
 destdir=${destdir%/}
 
-export CLOUDFILES_AUTHURL=https://api.clodo.ru
-csdup_storageid=$csdup_storageid
-csdup_apikey=$csdup_apikey
-export CLOUDFILES_USERNAME=$csdup_storageid
-export CLOUDFILES_APIKEY=$csdup_apikey
+export CLOUDFILES_AUTHURL=$clouddup_authurl
+clouddup_storageid=$clouddup_storageid
+clouddup_apikey=$clouddup_apikey
+export CLOUDFILES_USERNAME=$clouddup_storageid
+export CLOUDFILES_APIKEY=$clouddup_apikey
 
 ### SANITY CHECKS ##############################################################
 
-#export CLOUDFILES_USERNAME=$csdup_storageid
-#export CLOUDFILES_APIKEY=$csdup_apikey
+#export CLOUDFILES_USERNAME=$clouddup_storageid
+#export CLOUDFILES_APIKEY=$clouddup_apikey
 
 [ -n "$desturl" -o -n "$destdir" ]  || fatal "The destination directory (destdir) must be set when desturl is not used."
 [ -n "$include" -o -n "$vsinclude" ]  || fatal "No source includes specified"
@@ -313,10 +314,10 @@ fi
 
 ### Backup command
 
-export CLOUDFILES_USERNAME=$csdup_storageid
-export CLOUDFILES_APIKEY=$csdup_apikey
+export CLOUDFILES_USERNAME=$clouddup_storageid
+export CLOUDFILES_APIKEY=$clouddup_apikey
 
-echo $csdup_storageid
+echo $clouddup_storageid
 debug "duplicity $execstr_command $execstr_options $execstr_source --exclude '**' / $execstr_serverpart"
 if [ ! $test ]; then
    outputfile=`maketemp backupout`
