@@ -362,7 +362,7 @@ bandwidthlimit = $clouddup_bandwidth
 
 clouddup_authurl=https://$clouddup_authurl
 clouddup_storageid=$clouddup_storageid
-clouddup_apikey=$clouddup_apikey
+clouddup_apikey=https://$clouddup_apikey
 
 EOF
 
