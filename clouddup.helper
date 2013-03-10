@@ -276,7 +276,6 @@ do_clouddup_misc_options() {
      formItem "nicelevel" "$clouddup_nicelevel"
      formItem "testconnect" "$clouddup_testconnect"
      formItem "options" "$clouddup_options"
-     fromItem "emailif" "$emailif"
    formDisplay
    [ $? = 0 ] || return 1
 
@@ -289,7 +288,6 @@ do_clouddup_misc_options() {
    clouddup_nicelevel=${thereply[0]}
    clouddup_testconnect=${thereply[1]}
    clouddup_options=${thereply[2]}
-   clouddup_emailif=${thereply[3]}
 
    set +o noglob
 }
@@ -309,7 +307,6 @@ options = $clouddup_options
 nicelevel = $clouddup_nicelevel
 testconnect = $clouddup_testconnect
 email = $clouddup_email
-emailif = $clouddup_emailif
 
 [gpg]
 sign = $clouddup_gpg_sign
@@ -479,7 +476,6 @@ clouddup_wizard() {
    clouddup_nicelevel=19
    clouddup_testconnect=no
    clouddup_options=
-   clouddup_emailif="error"
 
    # Global variables whose '*' shall not be expanded
    set -o noglob
