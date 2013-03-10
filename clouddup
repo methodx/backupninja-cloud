@@ -40,6 +40,7 @@ getconf destuser
 getconf clouddup_storageid
 getconf clouddup_apikey
 getconf clouddup_authurl
+getconf email
 
 destdir=${destdir%/}
 
@@ -120,17 +121,6 @@ duplicity_version="`duplicity --version | /usr/bin/awk '{print $2}' | /bin/sed '
 duplicity_major="`echo $duplicity_version | /usr/bin/awk -F '.' '{print $1}'`"
 duplicity_minor="`echo $duplicity_version | /usr/bin/awk -F '.' '{print $2}'`"
 duplicity_sub="`echo $duplicity_version | /usr/bin/awk -F '.' '{print $3}'`"
-
-### ssh/scp/sftp options (duplicity < 0.4.3 is unsupported)
-scpoptions="$sshoptions"
-if [ "$bandwidthlimit" != 0 ]; then
-   [ -z "$desturl" ] || warning 'The bandwidthlimit option is not used when desturl is set.'
-   scpoptions="$scpoptions -l $bandwidthlimit"
-fi
-sftpoptions="$sshoptions"
-execstr_options=
-
-##"${execstr_options} --scp-command 'scp $scpoptions' --sftp-command 'sftp $sftpoptions'"
 
 ### Symmetric or asymmetric (public/private key pair) encryption
 if [ -n "$encryptkey" ]; then
@@ -336,6 +326,9 @@ if [ ! $test ]; then
       info "Duplicity finished successfully."
    else
       fatal "Duplicity failed."
+      if [ -z "$email" ]; then
+         cat $outputfile  | mail -s "Backup failed" $adminmail
+      fi
    fi
    rm $outputfile
 fi

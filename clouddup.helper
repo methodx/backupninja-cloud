@@ -161,11 +161,12 @@ do_clouddup_url() {
       clouddup_apikey=${thereply[2]}
       clouddup_cont=${thereply[3]}
       clouddup_name=${thereply[4]}
-      clouddup_keep=${thereply[5]}
-      clouddup_incremental=${thereply[6]}
-      clouddup_increments=${thereply[7]}
-      clouddup_keepincroffulls=${thereply[8]}
-      clouddup_bandwidth=${thereply[9]}
+      clouddup_email=${thereply[5]}
+      clouddup_keep=${thereply[6]}
+      clouddup_incremental=${thereply[7]}
+      clouddup_increments=${thereply[8]}
+      clouddup_keepincroffulls=${thereply[9]}
+      clouddup_bandwidth=${thereply[10]}
 
    done
    set +o noglob
@@ -357,6 +358,7 @@ keep = $clouddup_keep
 keepincroffulls = $clouddup_keepincroffulls
 desturl = cf+http://$clouddup_cont
 bandwidthlimit = $clouddup_bandwidth
+email = $email
 
 ## Clodo Cloud Storage credentials
 
@@ -391,7 +393,7 @@ clouddup_cont=$clouddup_cont
 export CLOUDFILES_USERNAME=$clouddup_storageid
 export CLOUDFILES_APIKEY=$clouddup_apikey
 export PASSPHRASE=$clouddup_gpg_password
-export CLOUDFILES_AUTHURL=$clouddup_authurl
+export CLOUDFILES_AUTHURL=https://$clouddup_authurl
 export CLOUDFILES_CONTAINER=$clouddup_cont
 
 

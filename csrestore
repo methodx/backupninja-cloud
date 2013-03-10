@@ -1,0 +1,19 @@
+#!/bin/bash
+
+RESTORE_PATH=/var/restored
+BACKUP_NAME=$clouddup_name
+OUTPUT_PATH=$RESTORE_PATH/$CLOUDFILES_CONTAINER
+if [ -a $1 ]; then
+	. $1
+	duplicity cf+http://$CLOUDFILES_CONTAINER $OUTPUT_PATH
+if [ $? == 0 ]; then
+	echo "Backup successfully restored to" $RESTORE_PATH
+	exit 0
+else 
+	echo "Something is wrong with duplicity"
+	exit 2
+fi
+else
+	echo "Error: Cannot locate" $1
+	exit 1
+fi
