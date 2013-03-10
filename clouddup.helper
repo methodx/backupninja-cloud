@@ -305,6 +305,7 @@ do_clouddup_finish() {
 options = $clouddup_options
 nicelevel = $clouddup_nicelevel
 testconnect = $clouddup_testconnect
+email = $email
 
 [gpg]
 sign = $clouddup_gpg_sign
@@ -358,7 +359,6 @@ keep = $clouddup_keep
 keepincroffulls = $clouddup_keepincroffulls
 desturl = cf+http://$clouddup_cont
 bandwidthlimit = $clouddup_bandwidth
-email = $email
 
 ## Clodo Cloud Storage credentials
 

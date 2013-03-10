@@ -9,6 +9,7 @@ getconf options
 getconf testconnect yes
 getconf nicelevel 0
 getconf tmpdir
+getconf email
 
 setsection gpg
 getconf password
@@ -326,8 +327,8 @@ if [ ! $test ]; then
       info "Duplicity finished successfully."
    else
       fatal "Duplicity failed."
-      if [ -z "$email" ]; then
-         cat $outputfile  | mail -s "Backup failed" $adminmail
+      if [ -n $email ]; then
+         cat $outputfile  | mail -s "Backup failed" $email
       fi
    fi
    rm $outputfile
