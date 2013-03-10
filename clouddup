@@ -41,7 +41,7 @@ getconf destuser
 getconf clouddup_storageid
 getconf clouddup_apikey
 getconf clouddup_authurl
-getconf email
+getconf emailif
 
 destdir=${destdir%/}
 
@@ -325,9 +325,12 @@ if [ ! $test ]; then
    )
    if [ $exit_code -eq 0 ]; then
       info "Duplicity finished successfully."
+      if [ -n $email ] && [ $emailif == "any" ] ]; then
+         cat $outputfile  | mail -s "Backup succeed" $email
+      fi
    else
       fatal "Duplicity failed."
-      if [ -n $email ]; then
+      if [ -n $email && [ $emailif == "error" || $emailif == "any" ] ]; then
          cat $outputfile  | mail -s "Backup failed" $email
       fi
    fi

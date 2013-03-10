@@ -138,15 +138,16 @@ do_clouddup_url() {
    while [ -z "$REPLY" -o -z "$clouddup_storageid" -o -z "$clouddup_apikey" -o -z "$clouddup_cont" -o -z "$clouddup_name" ]; do
       formBegin "$clouddup_title - destination: first four items are compulsory"
 	formItem "authurl" "$clouddup_authurl"
-        formItem "storage" "$clouddup_storageid"
+  formItem "storage" "$clouddup_storageid"
 	formItem "apikey" "$clouddup_apikey"
 	formItem "container" "$clouddup_cont"
 	formItem "name" "$clouddup_name"
-        formItem "keep" "$clouddup_keep"
+  formItem "email" "$clouddup_email"
+  formItem "keep" "$clouddup_keep"
 	formItem "incremental" "$clouddup_incremental"
-        formItem "increments" "$clouddup_increments"
-        formItem "keepincroffulls" "$clouddup_keepincroffulls"
-        formItem "bandwidthlimit" "$clouddup_bandwidth"
+  formItem "increments" "$clouddup_increments"
+  formItem "keepincroffulls" "$clouddup_keepincroffulls"
+  formItem "bandwidthlimit" "$clouddup_bandwidth"
       formDisplay
       [ $? = 0 ] || return 1
 
@@ -275,6 +276,7 @@ do_clouddup_misc_options() {
      formItem "nicelevel" "$clouddup_nicelevel"
      formItem "testconnect" "$clouddup_testconnect"
      formItem "options" "$clouddup_options"
+     fromItem "emailif" "$emailif"
    formDisplay
    [ $? = 0 ] || return 1
 
@@ -287,6 +289,7 @@ do_clouddup_misc_options() {
    clouddup_nicelevel=${thereply[0]}
    clouddup_testconnect=${thereply[1]}
    clouddup_options=${thereply[2]}
+   clouddup_emailif=${thereply[3]}
 
    set +o noglob
 }
@@ -306,6 +309,7 @@ options = $clouddup_options
 nicelevel = $clouddup_nicelevel
 testconnect = $clouddup_testconnect
 email = $clouddup_email
+emailif = $clouddup_emailif
 
 [gpg]
 sign = $clouddup_gpg_sign
@@ -475,6 +479,7 @@ clouddup_wizard() {
    clouddup_nicelevel=19
    clouddup_testconnect=no
    clouddup_options=
+   clouddup_emailif="error"
 
    # Global variables whose '*' shall not be expanded
    set -o noglob
