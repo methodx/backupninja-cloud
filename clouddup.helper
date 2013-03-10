@@ -305,7 +305,7 @@ do_clouddup_finish() {
 options = $clouddup_options
 nicelevel = $clouddup_nicelevel
 testconnect = $clouddup_testconnect
-email = $email
+email = $clouddup_email
 
 [gpg]
 sign = $clouddup_gpg_sign
