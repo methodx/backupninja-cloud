@@ -336,10 +336,10 @@ if [ ! $test ]; then
    if [ $exit_code -eq 0 ]; then
       info "Duplicity finished successfully."
    else
-      fatal "Duplicity failed."
-      if [ -n $email ]; then
+      if [ -n $email ] ; then
          cat $outputfile  | mail -s "Error: Backup creation failed" $email
       fi
+      fatal "Duplicity failed."
    fi
    rm $outputfile
 fi
